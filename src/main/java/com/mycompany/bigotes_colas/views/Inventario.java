@@ -44,6 +44,10 @@ public class Inventario extends javax.swing.JFrame {
         btnBuscarProducto = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
         tablaInventario = new javax.swing.JTable();
+        lblAlertaStock = new javax.swing.JLabel();
+        btnRegistrarEntrada = new javax.swing.JButton();
+        btnRegistrarSalida = new javax.swing.JButton();
+        btnNuevoProducto = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -180,19 +184,43 @@ public class Inventario extends javax.swing.JFrame {
         ));
         jScrollPane1.setViewportView(tablaInventario);
 
+        lblAlertaStock.setText("⚠ 2 productos bajo stock minimo - 1 vence este mes");
+
+        btnRegistrarEntrada.setBackground(new java.awt.Color(46, 125, 107));
+        btnRegistrarEntrada.setForeground(new java.awt.Color(255, 255, 255));
+        btnRegistrarEntrada.setText("Registrar entrada");
+
+        btnRegistrarSalida.setBackground(new java.awt.Color(46, 125, 107));
+        btnRegistrarSalida.setForeground(new java.awt.Color(255, 255, 255));
+        btnRegistrarSalida.setText("Registrar salida");
+
+        btnNuevoProducto.setBackground(new java.awt.Color(46, 125, 107));
+        btnNuevoProducto.setForeground(new java.awt.Color(255, 255, 255));
+        btnNuevoProducto.setText("Nuevo producto");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGap(188, 188, 188)
-                .addComponent(btnBuscarProducto)
-                .addGap(18, 18, 18)
-                .addComponent(txtBuscarProducto, javax.swing.GroupLayout.PREFERRED_SIZE, 197, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap(147, Short.MAX_VALUE)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 554, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(188, 188, 188)
+                        .addComponent(btnBuscarProducto)
+                        .addGap(18, 18, 18)
+                        .addComponent(txtBuscarProducto, javax.swing.GroupLayout.PREFERRED_SIZE, 197, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                        .addContainerGap(147, Short.MAX_VALUE)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(lblAlertaStock)
+                            .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 554, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(btnRegistrarEntrada)
+                                .addGap(18, 18, 18)
+                                .addComponent(btnRegistrarSalida)
+                                .addGap(18, 18, 18)
+                                .addComponent(btnNuevoProducto)))))
                 .addContainerGap())
             .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(layout.createSequentialGroup()
@@ -211,7 +239,14 @@ public class Inventario extends javax.swing.JFrame {
                     .addComponent(btnBuscarProducto))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(120, Short.MAX_VALUE))
+                .addGap(34, 34, 34)
+                .addComponent(lblAlertaStock)
+                .addGap(18, 18, 18)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(btnRegistrarEntrada)
+                    .addComponent(btnRegistrarSalida)
+                    .addComponent(btnNuevoProducto))
+                .addContainerGap(29, Short.MAX_VALUE))
             .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(layout.createSequentialGroup()
                     .addContainerGap()
@@ -290,7 +325,11 @@ public class Inventario extends javax.swing.JFrame {
     private javax.swing.JButton btnNavMascotas;
     private javax.swing.JButton btnNavReportes;
     private javax.swing.JButton btnNavUsuarios;
+    private javax.swing.JButton btnNuevoProducto;
+    private javax.swing.JButton btnRegistrarEntrada;
+    private javax.swing.JButton btnRegistrarSalida;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JLabel lblAlertaStock;
     private javax.swing.JLabel lblMarca;
     private javax.swing.JLabel lblSubtituloPantalla;
     private javax.swing.JLabel lblUsuarioSesion;

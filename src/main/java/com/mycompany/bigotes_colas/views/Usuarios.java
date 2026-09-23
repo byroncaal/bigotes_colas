@@ -4,6 +4,8 @@
  */
 package com.mycompany.bigotes_colas.views;
 
+import javax.swing.JOptionPane;
+
 /**
  *
  * @author gbcya
@@ -40,6 +42,25 @@ public class Usuarios extends javax.swing.JFrame {
         lblMarca = new javax.swing.JLabel();
         lblSubtituloPantalla = new javax.swing.JLabel();
         lblUsuarioSesion = new javax.swing.JLabel();
+        txtBuscarUsuario = new javax.swing.JTextField();
+        btnBuscarUsuario = new javax.swing.JButton();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        tablaUsuarios = new javax.swing.JTable();
+        pnlFormularioUsuario = new javax.swing.JPanel();
+        lblNuevoUsuario = new javax.swing.JLabel();
+        txtNombreCompleto = new javax.swing.JTextField();
+        lblNombreCompleto = new javax.swing.JLabel();
+        lblUsuario = new javax.swing.JLabel();
+        txtNombreUsuario = new javax.swing.JTextField();
+        jLabel1 = new javax.swing.JLabel();
+        txtClaveUsuario = new javax.swing.JPasswordField();
+        jLabel2 = new javax.swing.JLabel();
+        comboRolUsuario = new javax.swing.JComboBox<>();
+        btnGuardarUsuario = new javax.swing.JButton();
+        btnEditarUsuario = new javax.swing.JButton();
+        btnEliminarUsuario = new javax.swing.JButton();
+        btnResetClave = new javax.swing.JButton();
+        btnSuspenderUsuario = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -129,7 +150,7 @@ public class Usuarios extends javax.swing.JFrame {
         lblMarca.setText("Bigotes & Colas");
 
         lblSubtituloPantalla.setForeground(new java.awt.Color(207, 227, 223));
-        lblSubtituloPantalla.setText(" | Clientes ");
+        lblSubtituloPantalla.setText("| Usuarios");
 
         lblUsuarioSesion.setForeground(new java.awt.Color(255, 255, 255));
         lblUsuarioSesion.setText("Sesion: Administrador");
@@ -158,11 +179,138 @@ public class Usuarios extends javax.swing.JFrame {
                 .addContainerGap(48, Short.MAX_VALUE))
         );
 
+        txtBuscarUsuario.setToolTipText("Buscar usuario...");
+
+        btnBuscarUsuario.setText("Buscar");
+
+        tablaUsuarios.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {"admin", "Ana Lopez", "Administrador", "Activo"},
+                {"jmendez", "Dr. Mendez", "Veterinario", "Activo"},
+                {"msolis", "Dra. Solis", "Veterinario", "Activo"},
+                {"recepcion1", "Luisa Ramirez", "Recepcionista", "Activo"}
+            },
+            new String [] {
+                "Usuario", "Nombre Completo", "Rol", "Estado"
+            }
+        ));
+        jScrollPane1.setViewportView(tablaUsuarios);
+
+        pnlFormularioUsuario.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(233, 243, 241), 2));
+
+        lblNuevoUsuario.setFont(new java.awt.Font("Arial", 1, 12)); // NOI18N
+        lblNuevoUsuario.setText("Nuevo usuario");
+
+        lblNombreCompleto.setText("Nombre Completo:");
+
+        lblUsuario.setText("Usuario:");
+
+        jLabel1.setText("Contraseña:");
+
+        jLabel2.setText("Rol:");
+
+        comboRolUsuario.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Administrador", "Veterinario", "Recepcionista" }));
+
+        btnGuardarUsuario.setText("Guardar usuario");
+
+        javax.swing.GroupLayout pnlFormularioUsuarioLayout = new javax.swing.GroupLayout(pnlFormularioUsuario);
+        pnlFormularioUsuario.setLayout(pnlFormularioUsuarioLayout);
+        pnlFormularioUsuarioLayout.setHorizontalGroup(
+            pnlFormularioUsuarioLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(pnlFormularioUsuarioLayout.createSequentialGroup()
+                .addGap(0, 6, Short.MAX_VALUE)
+                .addComponent(lblNombreCompleto)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(txtNombreCompleto, javax.swing.GroupLayout.PREFERRED_SIZE, 179, javax.swing.GroupLayout.PREFERRED_SIZE))
+            .addGroup(pnlFormularioUsuarioLayout.createSequentialGroup()
+                .addGroup(pnlFormularioUsuarioLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(pnlFormularioUsuarioLayout.createSequentialGroup()
+                        .addGap(98, 98, 98)
+                        .addComponent(lblNuevoUsuario))
+                    .addGroup(pnlFormularioUsuarioLayout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(jLabel2)
+                        .addGap(18, 18, 18)
+                        .addComponent(comboRolUsuario, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+            .addGroup(pnlFormularioUsuarioLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(pnlFormularioUsuarioLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(pnlFormularioUsuarioLayout.createSequentialGroup()
+                        .addComponent(lblUsuario)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(txtNombreUsuario))
+                    .addGroup(pnlFormularioUsuarioLayout.createSequentialGroup()
+                        .addComponent(jLabel1)
+                        .addGap(18, 18, 18)
+                        .addComponent(txtClaveUsuario))
+                    .addGroup(pnlFormularioUsuarioLayout.createSequentialGroup()
+                        .addGap(83, 83, 83)
+                        .addComponent(btnGuardarUsuario)
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
+        );
+        pnlFormularioUsuarioLayout.setVerticalGroup(
+            pnlFormularioUsuarioLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(pnlFormularioUsuarioLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(lblNuevoUsuario)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(pnlFormularioUsuarioLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(txtNombreCompleto, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(lblNombreCompleto, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGap(18, 18, 18)
+                .addGroup(pnlFormularioUsuarioLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(txtNombreUsuario, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(lblUsuario))
+                .addGap(18, 18, 18)
+                .addGroup(pnlFormularioUsuarioLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel1)
+                    .addComponent(txtClaveUsuario, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(18, 18, 18)
+                .addGroup(pnlFormularioUsuarioLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel2)
+                    .addComponent(comboRolUsuario, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(btnGuardarUsuario)
+                .addContainerGap(17, Short.MAX_VALUE))
+        );
+
+        btnEditarUsuario.setText("Editar ");
+
+        btnEliminarUsuario.setText("Eliminar ");
+
+        btnResetClave.setText("Restablecer contrasena");
+
+        btnSuspenderUsuario.setText("Suspender Usuario");
+        btnSuspenderUsuario.addActionListener(this::btnSuspenderUsuarioActionPerformed);
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 699, Short.MAX_VALUE)
+            .addGroup(layout.createSequentialGroup()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(139, 139, 139)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 300, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(18, 18, 18)
+                                .addComponent(pnlFormularioUsuario, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(btnBuscarUsuario)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(txtBuscarUsuario, javax.swing.GroupLayout.PREFERRED_SIZE, 123, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(157, 157, 157)
+                        .addComponent(btnEditarUsuario)
+                        .addGap(18, 18, 18)
+                        .addComponent(btnEliminarUsuario)
+                        .addGap(18, 18, 18)
+                        .addComponent(btnResetClave)
+                        .addGap(18, 18, 18)
+                        .addComponent(btnSuspenderUsuario)))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
             .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(layout.createSequentialGroup()
                     .addContainerGap()
@@ -173,7 +321,22 @@ public class Usuarios extends javax.swing.JFrame {
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 757, Short.MAX_VALUE)
+            .addGroup(layout.createSequentialGroup()
+                .addGap(162, 162, 162)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(txtBuscarUsuario, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btnBuscarUsuario))
+                .addGap(31, 31, 31)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 121, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(pnlFormularioUsuario, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(53, 53, 53)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(btnEditarUsuario)
+                    .addComponent(btnEliminarUsuario)
+                    .addComponent(btnResetClave)
+                    .addComponent(btnSuspenderUsuario))
+                .addContainerGap(241, Short.MAX_VALUE))
             .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(layout.createSequentialGroup()
                     .addContainerGap()
@@ -215,9 +378,15 @@ public class Usuarios extends javax.swing.JFrame {
 
     private void btnNavUsuariosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnNavUsuariosActionPerformed
         // TODO add your handling code here:
-        new Usuarios().setVisible(true);
-        this.dispose();
+    
     }//GEN-LAST:event_btnNavUsuariosActionPerformed
+
+    private void btnSuspenderUsuarioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSuspenderUsuarioActionPerformed
+        // TODO add your handling code here:
+        JOptionPane.showMessageDialog(this,
+    "Accion de prototipo: \"Suspender usuario\"\n(sin logica de negocio todavia)",
+    "Prototipo no funcional", JOptionPane.INFORMATION_MESSAGE);
+    }//GEN-LAST:event_btnSuspenderUsuarioActionPerformed
 
     /**
      * @param args the command line arguments
@@ -245,6 +414,10 @@ public class Usuarios extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnBuscarUsuario;
+    private javax.swing.JButton btnEditarUsuario;
+    private javax.swing.JButton btnEliminarUsuario;
+    private javax.swing.JButton btnGuardarUsuario;
     private javax.swing.JButton btnNavCitas;
     private javax.swing.JButton btnNavClientes;
     private javax.swing.JButton btnNavHistorial;
@@ -252,10 +425,25 @@ public class Usuarios extends javax.swing.JFrame {
     private javax.swing.JButton btnNavMascotas;
     private javax.swing.JButton btnNavReportes;
     private javax.swing.JButton btnNavUsuarios;
+    private javax.swing.JButton btnResetClave;
+    private javax.swing.JButton btnSuspenderUsuario;
+    private javax.swing.JComboBox<String> comboRolUsuario;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel2;
+    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JLabel lblMarca;
+    private javax.swing.JLabel lblNombreCompleto;
+    private javax.swing.JLabel lblNuevoUsuario;
     private javax.swing.JLabel lblSubtituloPantalla;
+    private javax.swing.JLabel lblUsuario;
     private javax.swing.JLabel lblUsuarioSesion;
     private javax.swing.JPanel pnlEncabezado;
+    private javax.swing.JPanel pnlFormularioUsuario;
     private javax.swing.JPanel pnlSidebar;
+    private javax.swing.JTable tablaUsuarios;
+    private javax.swing.JTextField txtBuscarUsuario;
+    private javax.swing.JPasswordField txtClaveUsuario;
+    private javax.swing.JTextField txtNombreCompleto;
+    private javax.swing.JTextField txtNombreUsuario;
     // End of variables declaration//GEN-END:variables
 }

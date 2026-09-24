@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<Form version="1.3" maxVersion="1.9" type="org.netbeans.modules.form.forminfo.JFrameFormInfo">
+<Form version="1.5" maxVersion="1.9" type="org.netbeans.modules.form.forminfo.JFrameFormInfo">
   <Properties>
     <Property name="defaultCloseOperation" type="int" value="3"/>
   </Properties>
@@ -53,13 +53,16 @@
               </Group>
               <EmptySpace max="32767" attributes="0"/>
           </Group>
+          <Group type="102" alignment="1" attributes="0">
+              <EmptySpace min="0" pref="0" max="32767" attributes="0"/>
+              <Component id="pnlEncabezado" min="-2" max="-2" attributes="0"/>
+              <EmptySpace min="-2" pref="84" max="-2" attributes="0"/>
+          </Group>
           <Group type="103" rootIndex="1" groupAlignment="0" attributes="0">
               <Group type="102" alignment="0" attributes="0">
                   <EmptySpace max="-2" attributes="0"/>
                   <Component id="pnlSidebar" min="-2" max="-2" attributes="0"/>
-                  <EmptySpace min="-2" pref="29" max="-2" attributes="0"/>
-                  <Component id="pnlEncabezado" min="-2" max="-2" attributes="0"/>
-                  <EmptySpace max="32767" attributes="0"/>
+                  <EmptySpace pref="647" max="32767" attributes="0"/>
               </Group>
           </Group>
       </Group>
@@ -67,7 +70,9 @@
     <DimensionLayout dim="1">
       <Group type="103" groupAlignment="0" attributes="0">
           <Group type="102" alignment="0" attributes="0">
-              <EmptySpace min="-2" pref="162" max="-2" attributes="0"/>
+              <EmptySpace min="-2" pref="37" max="-2" attributes="0"/>
+              <Component id="pnlEncabezado" min="-2" max="-2" attributes="0"/>
+              <EmptySpace type="separate" max="-2" attributes="0"/>
               <Group type="103" groupAlignment="3" attributes="0">
                   <Component id="txtBuscarUsuario" alignment="3" min="-2" max="-2" attributes="0"/>
                   <Component id="btnBuscarUsuario" alignment="3" min="-2" max="-2" attributes="0"/>
@@ -89,14 +94,7 @@
           <Group type="103" rootIndex="1" groupAlignment="0" attributes="0">
               <Group type="102" attributes="0">
                   <EmptySpace max="-2" attributes="0"/>
-                  <Group type="103" groupAlignment="0" attributes="0">
-                      <Group type="102" alignment="0" attributes="0">
-                          <EmptySpace min="-2" pref="32" max="-2" attributes="0"/>
-                          <Component id="pnlEncabezado" min="-2" max="-2" attributes="0"/>
-                          <EmptySpace min="606" pref="606" max="-2" attributes="0"/>
-                      </Group>
-                      <Component id="pnlSidebar" alignment="0" max="32767" attributes="0"/>
-                  </Group>
+                  <Component id="pnlSidebar" max="32767" attributes="0"/>
                   <EmptySpace max="-2" attributes="0"/>
               </Group>
           </Group>

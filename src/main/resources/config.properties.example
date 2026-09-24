@@ -1,0 +1,5 @@
+db.host=TU_HOST_REMOTO
+db.port=26485
+db.database=bigotes_colas
+db.user=TU_USUARIO
+db.password=TU_CONTRASENA

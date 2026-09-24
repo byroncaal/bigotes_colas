@@ -4,6 +4,9 @@
  */
 package com.mycompany.bigotes_colas.views;
 
+import com.mycompany.bigotes_colas.model.Usuario;
+import java.sql.SQLException;
+import javax.swing.JOptionPane;
 /**
  *
  * @author gbcya
@@ -128,9 +131,8 @@ public class Login extends javax.swing.JFrame {
 
     private void btnIngresarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnIngresarActionPerformed
         // TODO add your handling code here:
-  com.mycompany.bigotes_colas.util.Sesion.setRolActivo((String) comboRol.getSelectedItem());
-    new Clientes().setVisible(true);
-    this.dispose();
+  try { com.mycompany.bigotes_colas.controlador.Login controladorLogin = new com.mycompany.bigotes_colas.controlador.Login(); Usuario usuario = controladorLogin.iniciarSesion( txtUsuario.getText(), new String(txtPassword.getPassword()) ); if (usuario != null) { new Clientes().setVisible(true); this.dispose(); } else { JOptionPane.showMessageDialog(this, "Usuario o contrasena incorrectos", "Error de acceso", JOptionPane.ERROR_MESSAGE); } } catch (SQLException ex) { JOptionPane.showMessageDialog(this, "Error de conexion: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE); }
+  
     }//GEN-LAST:event_btnIngresarActionPerformed
 
     /**

@@ -4,22 +4,49 @@
  */
 package com.mycompany.bigotes_colas.views;
 
+import com.mycompany.bigotes_colas.model.Cliente;
 import javax.swing.JOptionPane;
+import javax.swing.table.DefaultTableModel;
+import java.sql.SQLException;
+import java.util.List;
 
 /**
  *
  * @author gbcya
  */
-public class Clientes extends javax.swing.JFrame {
-
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Clientes.class.getName());
-
+   public class Clientes extends javax.swing.JFrame {
+ 
+     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Clientes.class.getName());
+ 
     /**
      * Creates new form Clientes
      */
     public Clientes() {
         initComponents();
-       
+        cargarClientes();
+    }
+ 
+    private void cargarClientes() {
+        try {
+            com.mycompany.bigotes_colas.controlador.Cliente controlador =
+                    new com.mycompany.bigotes_colas.controlador.Cliente();
+            List<Cliente> lista = controlador.listar();
+            llenarTabla(lista);
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Error al cargar clientes: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+ 
+    private void llenarTabla(List<Cliente> lista) {
+        DefaultTableModel modelo = (DefaultTableModel) tablaClientes.getModel();
+        modelo.setRowCount(0);
+        for (Cliente c : lista) {
+            modelo.addRow(new Object[]{
+                c.getDpi(), c.getNombre(), c.getTelefono(), c.getDireccion(), ""
+            });
+        }
     }
 
     /**
@@ -233,6 +260,7 @@ public class Clientes extends javax.swing.JFrame {
         txtBuscarCliente.setToolTipText("Buscar por nombre o telefono...");
 
         btnBuscarCliente.setText("Buscar");
+        btnBuscarCliente.addActionListener(this::btnBuscarClienteActionPerformed);
 
         tablaClientes.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
@@ -244,7 +272,7 @@ public class Clientes extends javax.swing.JFrame {
                 {null, null, null, null, null}
             },
             new String [] {
-                "Codigo", "Nombre", "Telefono", "Direccion", "Mascotas "
+                "DPI", "Nombre", "Telefono", "Direccion", "Mascotas "
             }
         ));
         jScrollPane1.setViewportView(tablaClientes);
@@ -323,7 +351,8 @@ public class Clientes extends javax.swing.JFrame {
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
-
+  
+ 
     private void itemSalirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_itemSalirActionPerformed
         // TODO add your handling code here:
         System.exit(0);
@@ -361,23 +390,97 @@ public class Clientes extends javax.swing.JFrame {
 
     private void btnAgregarClienteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAgregarClienteActionPerformed
         // TODO add your handling code here:
-        JOptionPane.showMessageDialog(this, "Accion de prototipo: \"Agregar cliente\"\n(sin logica de negocio todavia)", "Prototipo no funcional", JOptionPane.INFORMATION_MESSAGE);
+        String nombre = JOptionPane.showInputDialog(this, "Nombre:");
+        if (nombre == null) return;
+        String dpi = JOptionPane.showInputDialog(this, "DPI:");
+        if (dpi == null) return;
+        String telefono = JOptionPane.showInputDialog(this, "Telefono:");
+        String direccion = JOptionPane.showInputDialog(this, "Direccion:");
+ 
+        try {
+            com.mycompany.bigotes_colas.controlador.Cliente controlador =
+                    new com.mycompany.bigotes_colas.controlador.Cliente();
+            controlador.agregar(nombre, dpi, telefono, direccion);
+            cargarClientes();
+            JOptionPane.showMessageDialog(this, "Cliente agregado.");
+        } catch (IllegalArgumentException | SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
+        }
     }//GEN-LAST:event_btnAgregarClienteActionPerformed
 
     private void btnEditarClienteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEditarClienteActionPerformed
         // TODO add your handling code here:
-        JOptionPane.showMessageDialog(this, "Accion de prototipo: \"Eliminar cliente\"\n(sin logica de negocio todavia)", "Prototipo no funcional", JOptionPane.INFORMATION_MESSAGE);
+        int fila = tablaClientes.getSelectedRow();
+        if (fila == -1) {
+            JOptionPane.showMessageDialog(this, "Selecciona un cliente de la tabla primero.");
+            return;
+        }
+        String dpiSeleccionado = tablaClientes.getValueAt(fila, 0).toString();
+ 
+        try {
+            com.mycompany.bigotes_colas.controlador.Cliente controlador =
+                    new com.mycompany.bigotes_colas.controlador.Cliente();
+            List<Cliente> encontrados = controlador.buscar(dpiSeleccionado);
+            if (encontrados.isEmpty()) return;
+            Cliente c = encontrados.get(0);
+ 
+            String nuevoNombre = JOptionPane.showInputDialog(this, "Nombre:", c.getNombre());
+            if (nuevoNombre == null) return;
+            String nuevoTelefono = JOptionPane.showInputDialog(this, "Telefono:", c.getTelefono());
+            String nuevaDireccion = JOptionPane.showInputDialog(this, "Direccion:", c.getDireccion());
+ 
+            c.setNombre(nuevoNombre);
+            c.setTelefono(nuevoTelefono);
+            c.setDireccion(nuevaDireccion);
+            controlador.editar(c);
+            cargarClientes();
+            JOptionPane.showMessageDialog(this, "Cliente actualizado.");
+        } catch (IllegalArgumentException | SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
+        }
     }//GEN-LAST:event_btnEditarClienteActionPerformed
 
     private void btnEliminarClienteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEliminarClienteActionPerformed
         // TODO add your handling code here:
-        JOptionPane.showMessageDialog(this, "Accion de prototipo: \"Eliminar cliente\"\n(sin logica de negocio todavia)", "Prototipo no funcional", JOptionPane.INFORMATION_MESSAGE);
+         int fila = tablaClientes.getSelectedRow();
+        if (fila == -1) {
+            JOptionPane.showMessageDialog(this, "Selecciona un cliente de la tabla primero.");
+            return;
+        }
+        String dpiSeleccionado = tablaClientes.getValueAt(fila, 0).toString();
+ 
+        int confirmar = JOptionPane.showConfirmDialog(this,
+                "Seguro que quieres eliminar este cliente?", "Confirmar", JOptionPane.YES_NO_OPTION);
+        if (confirmar != JOptionPane.YES_OPTION) return;
+ 
+        try {
+            com.mycompany.bigotes_colas.controlador.Cliente controlador =
+                    new com.mycompany.bigotes_colas.controlador.Cliente();
+            List<Cliente> encontrados = controlador.buscar(dpiSeleccionado);
+            if (!encontrados.isEmpty()) {
+                controlador.eliminar(encontrados.get(0).getIdCliente());
+                cargarClientes();
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Error al eliminar: " + ex.getMessage());
+        }
     }//GEN-LAST:event_btnEliminarClienteActionPerformed
 
     private void btnVerMascotasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVerMascotasActionPerformed
         // TODO add your handling code here:
         JOptionPane.showMessageDialog(this, "Accion de prototipo: \"Ver mascotas cliente\"\n(sin logica de negocio todavia)", "Prototipo no funcional", JOptionPane.INFORMATION_MESSAGE);
     }//GEN-LAST:event_btnVerMascotasActionPerformed
+
+    private void btnBuscarClienteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarClienteActionPerformed
+        // TODO add your handling code here:
+         try {
+            com.mycompany.bigotes_colas.controlador.Cliente controlador =
+                    new com.mycompany.bigotes_colas.controlador.Cliente();
+            llenarTabla(controlador.buscar(txtBuscarCliente.getText()));
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Error al buscar: " + ex.getMessage());
+        }
+    }//GEN-LAST:event_btnBuscarClienteActionPerformed
 
     /**
      * @param args the command line arguments
@@ -399,6 +502,17 @@ public class Clientes extends javax.swing.JFrame {
             logger.log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
+        
+          try {
+            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
+            logger.log(java.util.logging.Level.SEVERE, null, ex);
+        }
 
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(() -> new Clientes().setVisible(true));

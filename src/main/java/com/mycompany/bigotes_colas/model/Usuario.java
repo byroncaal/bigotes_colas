@@ -8,10 +8,11 @@ package com.mycompany.bigotes_colas.model;
 public class Usuario {
 
     private int idUsuario;
-    private String nombre;       
-    private String usuario;     
-    private String claveHash;   
-    private String rol;          
+    private String nombre;
+    private String usuario;
+    private String claveHash;
+    private String rol;
+    private boolean activo = true; // false = suspendido, no puede iniciar sesión
 
     public Usuario() {
     }
@@ -70,6 +71,14 @@ public class Usuario {
 
     public void setRol(String rol) {
         this.rol = rol;
+    }
+
+    public boolean isActivo() {
+        return activo;
+    }
+
+    public void setActivo(boolean activo) {
+        this.activo = activo;
     }
 
     public boolean esAdministrador() {

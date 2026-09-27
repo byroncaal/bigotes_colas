@@ -3,6 +3,8 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
  */
 package com.mycompany.bigotes_colas.views;
+import com.mycompany.bigotes_colas.model.Usuario;
+import com.mycompany.bigotes_colas.controlador.Sesion;
 
 import com.mycompany.bigotes_colas.model.Cliente;
 import javax.swing.JOptionPane;
@@ -24,6 +26,7 @@ import java.util.List;
     public Clientes() {
         initComponents();
         cargarClientes();
+        aplicarPermisos();
     }
  
     private void cargarClientes() {
@@ -38,6 +41,16 @@ import java.util.List;
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
+    private void aplicarPermisos() {
+    Usuario usuarioActual = Sesion.getUsuarioActual();
+
+    if (usuarioActual != null) {
+        lblUsuarioSesion.setText("Sesion: " + usuarioActual.getNombre() + " (" + usuarioActual.getRol() + ")");
+    }
+
+    boolean esAdmin = usuarioActual != null && usuarioActual.esAdministrador();
+    btnEliminarCliente.setEnabled(esAdmin);
+}
  
     private void llenarTabla(List<Cliente> lista) {
         DefaultTableModel modelo = (DefaultTableModel) tablaClientes.getModel();
@@ -185,6 +198,7 @@ import java.util.List;
         btnNavClientes.setFont(new java.awt.Font("Arial", 1, 12)); // NOI18N
         btnNavClientes.setForeground(new java.awt.Color(255, 255, 255));
         btnNavClientes.setText("Clientes");
+        btnNavClientes.addActionListener(this::btnNavClientesActionPerformed);
 
         btnNavMascotas.setBackground(new java.awt.Color(233, 243, 241));
         btnNavMascotas.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
@@ -214,6 +228,7 @@ import java.util.List;
         btnNavReportes.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         btnNavReportes.setForeground(new java.awt.Color(74, 74, 74));
         btnNavReportes.setText("Reportes");
+        btnNavReportes.addActionListener(this::btnNavReportesActionPerformed);
 
         btnNavUsuarios.setBackground(new java.awt.Color(233, 243, 241));
         btnNavUsuarios.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
@@ -251,10 +266,10 @@ import java.util.List;
                 .addGap(18, 18, 18)
                 .addComponent(btnNavInventario)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(btnNavReportes)
+                .addComponent(btnNavReportes, javax.swing.GroupLayout.PREFERRED_SIZE, 21, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(btnNavUsuarios)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(478, Short.MAX_VALUE))
         );
 
         txtBuscarCliente.setToolTipText("Buscar por nombre o telefono...");
@@ -410,65 +425,140 @@ import java.util.List;
 
     private void btnEditarClienteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEditarClienteActionPerformed
         // TODO add your handling code here:
-        int fila = tablaClientes.getSelectedRow();
-        if (fila == -1) {
-            JOptionPane.showMessageDialog(this, "Selecciona un cliente de la tabla primero.");
+     int fila = tablaClientes.getSelectedRow();
+    if (fila == -1) {
+        JOptionPane.showMessageDialog(this, "Selecciona un cliente de la tabla primero.");
+        return;
+    }
+    String dpiSeleccionado = tablaClientes.getValueAt(fila, 0).toString().trim();
+
+    try {
+        com.mycompany.bigotes_colas.controlador.Cliente controlador =
+                new com.mycompany.bigotes_colas.controlador.Cliente();
+        List<Cliente> todos = controlador.listar();
+
+        Cliente c = null;
+        for (Cliente candidato : todos) {
+            if (candidato.getDpi() != null && candidato.getDpi().trim().equals(dpiSeleccionado)) {
+                c = candidato;
+                break;
+            }
+        }
+        if (c == null) {
+            JOptionPane.showMessageDialog(this, "No se encontro el cliente seleccionado.");
             return;
         }
-        String dpiSeleccionado = tablaClientes.getValueAt(fila, 0).toString();
- 
-        try {
-            com.mycompany.bigotes_colas.controlador.Cliente controlador =
-                    new com.mycompany.bigotes_colas.controlador.Cliente();
-            List<Cliente> encontrados = controlador.buscar(dpiSeleccionado);
-            if (encontrados.isEmpty()) return;
-            Cliente c = encontrados.get(0);
- 
-            String nuevoNombre = JOptionPane.showInputDialog(this, "Nombre:", c.getNombre());
-            if (nuevoNombre == null) return;
-            String nuevoTelefono = JOptionPane.showInputDialog(this, "Telefono:", c.getTelefono());
-            String nuevaDireccion = JOptionPane.showInputDialog(this, "Direccion:", c.getDireccion());
- 
-            c.setNombre(nuevoNombre);
-            c.setTelefono(nuevoTelefono);
-            c.setDireccion(nuevaDireccion);
-            controlador.editar(c);
-            cargarClientes();
-            JOptionPane.showMessageDialog(this, "Cliente actualizado.");
-        } catch (IllegalArgumentException | SQLException ex) {
-            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
-        }
+
+        String nuevoNombre = JOptionPane.showInputDialog(this, "Nombre:", c.getNombre());
+        if (nuevoNombre == null) return;
+        String nuevoTelefono = JOptionPane.showInputDialog(this, "Telefono:", c.getTelefono());
+        String nuevaDireccion = JOptionPane.showInputDialog(this, "Direccion:", c.getDireccion());
+
+        c.setNombre(nuevoNombre);
+        c.setTelefono(nuevoTelefono);
+        c.setDireccion(nuevaDireccion);
+        controlador.editar(c);
+        cargarClientes();
+        JOptionPane.showMessageDialog(this, "Cliente actualizado.");
+    } catch (IllegalArgumentException | SQLException ex) {
+        JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
+    }
     }//GEN-LAST:event_btnEditarClienteActionPerformed
 
     private void btnEliminarClienteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEliminarClienteActionPerformed
         // TODO add your handling code here:
-         int fila = tablaClientes.getSelectedRow();
-        if (fila == -1) {
-            JOptionPane.showMessageDialog(this, "Selecciona un cliente de la tabla primero.");
+      Usuario usuarioActual = Sesion.getUsuarioActual();
+    if (usuarioActual == null || !usuarioActual.esAdministrador()) {
+        JOptionPane.showMessageDialog(this, "Solo un Administrador puede eliminar clientes.",
+                "Acceso denegado", JOptionPane.WARNING_MESSAGE);
+        return;
+    }
+
+    int fila = tablaClientes.getSelectedRow();
+    if (fila == -1) {
+        JOptionPane.showMessageDialog(this, "Selecciona un cliente de la tabla primero.");
+        return;
+    }
+    String dpiSeleccionado = tablaClientes.getValueAt(fila, 0).toString().trim();
+
+    int confirmar = JOptionPane.showConfirmDialog(this,
+            "Seguro que quieres eliminar este cliente?", "Confirmar", JOptionPane.YES_NO_OPTION);
+    if (confirmar != JOptionPane.YES_OPTION) return;
+
+    try {
+        com.mycompany.bigotes_colas.controlador.Cliente controlador =
+                new com.mycompany.bigotes_colas.controlador.Cliente();
+        List<Cliente> todos = controlador.listar();
+
+        Cliente c = null;
+        for (Cliente candidato : todos) {
+            if (candidato.getDpi() != null && candidato.getDpi().trim().equals(dpiSeleccionado)) {
+                c = candidato;
+                break;
+            }
+        }
+        if (c == null) {
+            JOptionPane.showMessageDialog(this, "No se encontro el cliente seleccionado.");
             return;
         }
-        String dpiSeleccionado = tablaClientes.getValueAt(fila, 0).toString();
- 
-        int confirmar = JOptionPane.showConfirmDialog(this,
-                "Seguro que quieres eliminar este cliente?", "Confirmar", JOptionPane.YES_NO_OPTION);
-        if (confirmar != JOptionPane.YES_OPTION) return;
- 
-        try {
-            com.mycompany.bigotes_colas.controlador.Cliente controlador =
-                    new com.mycompany.bigotes_colas.controlador.Cliente();
-            List<Cliente> encontrados = controlador.buscar(dpiSeleccionado);
-            if (!encontrados.isEmpty()) {
-                controlador.eliminar(encontrados.get(0).getIdCliente());
-                cargarClientes();
-            }
-        } catch (SQLException ex) {
-            JOptionPane.showMessageDialog(this, "Error al eliminar: " + ex.getMessage());
-        }
+
+        controlador.eliminar(c.getIdCliente());
+        cargarClientes();
+    } catch (SQLException ex) {
+        JOptionPane.showMessageDialog(this, "Error al eliminar: " + ex.getMessage());
+    }
     }//GEN-LAST:event_btnEliminarClienteActionPerformed
 
     private void btnVerMascotasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVerMascotasActionPerformed
         // TODO add your handling code here:
-        JOptionPane.showMessageDialog(this, "Accion de prototipo: \"Ver mascotas cliente\"\n(sin logica de negocio todavia)", "Prototipo no funcional", JOptionPane.INFORMATION_MESSAGE);
+      int fila = tablaClientes.getSelectedRow();
+    if (fila == -1) {
+        JOptionPane.showMessageDialog(this, "Selecciona un cliente de la tabla primero.");
+        return;
+    }
+    String dpiSeleccionado = tablaClientes.getValueAt(fila, 0).toString().trim();
+
+    try {
+        com.mycompany.bigotes_colas.controlador.Cliente controladorCliente =
+                new com.mycompany.bigotes_colas.controlador.Cliente();
+        List<Cliente> todos = controladorCliente.listar();
+
+        Cliente c = null;
+        for (Cliente candidato : todos) {
+            if (candidato.getDpi() != null && candidato.getDpi().trim().equals(dpiSeleccionado)) {
+                c = candidato;
+                break;
+            }
+        }
+
+        if (c == null) {
+            JOptionPane.showMessageDialog(this, "No se encontro el cliente seleccionado.");
+            return;
+        }
+
+        com.mycompany.bigotes_colas.controlador.Mascota controladorMascota =
+                new com.mycompany.bigotes_colas.controlador.Mascota();
+        List<com.mycompany.bigotes_colas.model.Mascota> mascotas =
+                controladorMascota.listarPorCliente(c.getIdCliente());
+
+        if (mascotas.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Este cliente no tiene mascotas registradas.");
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder("Mascotas de " + c.getNombre() + ":\n\n");
+        for (com.mycompany.bigotes_colas.model.Mascota m : mascotas) {
+            sb.append("- ").append(m.getNombre())
+              .append(" (").append(m.getEspecie());
+            if (m.getRaza() != null && !m.getRaza().isBlank()) {
+                sb.append(" - ").append(m.getRaza());
+            }
+            sb.append(", ").append(m.getEdadAnios()).append(" anios)\n");
+        }
+        JOptionPane.showMessageDialog(this, sb.toString());
+    } catch (SQLException ex) {
+        JOptionPane.showMessageDialog(this, "Error al obtener mascotas: " + ex.getMessage());
+    }
     }//GEN-LAST:event_btnVerMascotasActionPerformed
 
     private void btnBuscarClienteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarClienteActionPerformed
@@ -481,6 +571,25 @@ import java.util.List;
             JOptionPane.showMessageDialog(this, "Error al buscar: " + ex.getMessage());
         }
     }//GEN-LAST:event_btnBuscarClienteActionPerformed
+
+    private void btnNavReportesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnNavReportesActionPerformed
+        // TODO add your handling code here:
+        try {
+        System.out.println("Intentando abrir Reportes...");
+        Reportes r = new com.mycompany.bigotes_colas.views.Reportes();
+        System.out.println("Reportes creado, mostrando ventana...");
+        r.setVisible(true);
+        this.dispose();
+    } catch (Throwable ex) {
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Error al abrir Reportes: " + ex, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+    }//GEN-LAST:event_btnNavReportesActionPerformed
+
+    private void btnNavClientesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnNavClientesActionPerformed
+        // TODO add your handling code here:
+        cargarClientes();
+    }//GEN-LAST:event_btnNavClientesActionPerformed
 
     /**
      * @param args the command line arguments
@@ -503,7 +612,8 @@ import java.util.List;
         }
         //</editor-fold>
         
-          try {
+          /*
+                  try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
                 if ("Nimbus".equals(info.getName())) {
                     javax.swing.UIManager.setLookAndFeel(info.getClassName());
@@ -553,4 +663,6 @@ import java.util.List;
     private javax.swing.JTable tablaClientes;
     private javax.swing.JTextField txtBuscarCliente;
     // End of variables declaration//GEN-END:variables
+
+  
 }

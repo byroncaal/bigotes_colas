@@ -20,16 +20,28 @@ import java.util.List;
  *
  * @author gbcya
  */
-
 public class UsuarioDAOImpl implements UsuarioDAO {
 
     @Override
     public Usuario validarLogin(String usuario, String claveHash) throws SQLException {
-        String sql = "SELECT * FROM usuario WHERE usuario = ? AND clave_hash = ?";
+        // Los usuarios suspendidos (activo = 0) no pueden iniciar sesión
+        String sql = "SELECT * FROM usuario WHERE usuario = ? AND clave_hash = ? AND activo = 1";
         try (Connection con = ConexionBD.obtenerConexion();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, usuario);
             ps.setString(2, claveHash);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? mapear(rs) : null;
+            }
+        }
+    }
+
+    @Override
+    public Usuario buscarPorUsuario(String usuario) throws SQLException {
+        String sql = "SELECT * FROM usuario WHERE usuario = ?";
+        try (Connection con = ConexionBD.obtenerConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, usuario);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next() ? mapear(rs) : null;
             }
@@ -52,8 +64,9 @@ public class UsuarioDAOImpl implements UsuarioDAO {
 
     @Override
     public List<Usuario> listarPorRol(String rol) throws SQLException {
+        // Solo activos: un veterinario suspendido no debe aparecer para agendar citas
         List<Usuario> lista = new ArrayList<>();
-        String sql = "SELECT * FROM usuario WHERE rol = ? ORDER BY nombre";
+        String sql = "SELECT * FROM usuario WHERE rol = ? AND activo = 1 ORDER BY nombre";
         try (Connection con = ConexionBD.obtenerConexion();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, rol);
@@ -68,7 +81,7 @@ public class UsuarioDAOImpl implements UsuarioDAO {
 
     @Override
     public void crear(Usuario u) throws SQLException {
-        String sql = "INSERT INTO usuario (nombre, usuario, clave_hash, rol) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO usuario (nombre, usuario, clave_hash, rol, activo) VALUES (?, ?, ?, ?, 1)";
         try (Connection con = ConexionBD.obtenerConexion();
              PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, u.getNombre());
@@ -109,6 +122,17 @@ public class UsuarioDAOImpl implements UsuarioDAO {
     }
 
     @Override
+    public void cambiarEstado(int idUsuario, boolean activo) throws SQLException {
+        String sql = "UPDATE usuario SET activo = ? WHERE id = ?";
+        try (Connection con = ConexionBD.obtenerConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setBoolean(1, activo);
+            ps.setInt(2, idUsuario);
+            ps.executeUpdate();
+        }
+    }
+
+    @Override
     public void eliminar(int idUsuario) throws SQLException {
         String sql = "DELETE FROM usuario WHERE id = ?";
         try (Connection con = ConexionBD.obtenerConexion();
@@ -119,12 +143,14 @@ public class UsuarioDAOImpl implements UsuarioDAO {
     }
 
     private Usuario mapear(ResultSet rs) throws SQLException {
-        return new Usuario(
+        Usuario u = new Usuario(
                 rs.getInt("id"),
                 rs.getString("nombre"),
                 rs.getString("usuario"),
                 rs.getString("clave_hash"),
                 rs.getString("rol")
         );
+        u.setActivo(rs.getBoolean("activo"));
+        return u;
     }
 }

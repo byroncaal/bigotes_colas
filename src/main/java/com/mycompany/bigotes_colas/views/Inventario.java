@@ -4,6 +4,13 @@
  */
 package com.mycompany.bigotes_colas.views;
 
+import com.mycompany.bigotes_colas.model.Producto;
+import javax.swing.JOptionPane;
+import javax.swing.table.DefaultTableModel;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.util.List;
+
 /**
  *
  * @author gbcya
@@ -12,11 +19,14 @@ public class Inventario extends javax.swing.JFrame {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Inventario.class.getName());
 
+    private List<Producto> productosActuales;
+
     /**
      * Creates new form Inventario
      */
     public Inventario() {
         initComponents();
+        cargarProductos();
     }
 
     /**
@@ -57,6 +67,7 @@ public class Inventario extends javax.swing.JFrame {
         btnNavClientes.setFont(new java.awt.Font("Arial", 1, 12)); // NOI18N
         btnNavClientes.setForeground(new java.awt.Color(74, 74, 74));
         btnNavClientes.setText("Clientes");
+        btnNavClientes.addActionListener(this::btnNavClientesActionPerformed);
 
         btnNavMascotas.setBackground(new java.awt.Color(233, 243, 241));
         btnNavMascotas.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
@@ -86,6 +97,7 @@ public class Inventario extends javax.swing.JFrame {
         btnNavReportes.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         btnNavReportes.setForeground(new java.awt.Color(74, 74, 74));
         btnNavReportes.setText("Reportes");
+        btnNavReportes.addActionListener(this::btnNavReportesActionPerformed);
 
         btnNavUsuarios.setBackground(new java.awt.Color(233, 243, 241));
         btnNavUsuarios.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
@@ -169,6 +181,7 @@ public class Inventario extends javax.swing.JFrame {
         txtBuscarProducto.setToolTipText("Buscar producto...");
 
         btnBuscarProducto.setText("Buscar Producto");
+        btnBuscarProducto.addActionListener(this::btnBuscarProductoActionPerformed);
 
         tablaInventario.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
@@ -189,14 +202,17 @@ public class Inventario extends javax.swing.JFrame {
         btnRegistrarEntrada.setBackground(new java.awt.Color(46, 125, 107));
         btnRegistrarEntrada.setForeground(new java.awt.Color(255, 255, 255));
         btnRegistrarEntrada.setText("Registrar entrada");
+        btnRegistrarEntrada.addActionListener(this::btnRegistrarEntradaActionPerformed);
 
         btnRegistrarSalida.setBackground(new java.awt.Color(46, 125, 107));
         btnRegistrarSalida.setForeground(new java.awt.Color(255, 255, 255));
         btnRegistrarSalida.setText("Registrar salida");
+        btnRegistrarSalida.addActionListener(this::btnRegistrarSalidaActionPerformed);
 
         btnNuevoProducto.setBackground(new java.awt.Color(46, 125, 107));
         btnNuevoProducto.setForeground(new java.awt.Color(255, 255, 255));
         btnNuevoProducto.setText("Nuevo producto");
+        btnNuevoProducto.addActionListener(this::btnNuevoProductoActionPerformed);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -262,6 +278,12 @@ public class Inventario extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    private void btnNavClientesActionPerformed(java.awt.event.ActionEvent evt) {
+        // TODO add your handling code here:
+        new Clientes().setVisible(true);
+        this.dispose();
+    }
+
     private void btnNavMascotasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnNavMascotasActionPerformed
         // TODO add your handling code here:
         new Mascotas().setVisible(true);
@@ -284,6 +306,130 @@ public class Inventario extends javax.swing.JFrame {
         // TODO add your handling code here:
        
     }//GEN-LAST:event_btnNavInventarioActionPerformed
+
+    private void btnNavReportesActionPerformed(java.awt.event.ActionEvent evt) {
+        // TODO add your handling code here:
+        new Reportes().setVisible(true);
+        this.dispose();
+    }
+
+    private void cargarProductos() {
+        try {
+            com.mycompany.bigotes_colas.controlador.Inventario controlador =
+                    new com.mycompany.bigotes_colas.controlador.Inventario();
+            productosActuales = controlador.listarProductos();
+            llenarTabla(productosActuales);
+            actualizarAlerta(controlador);
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Error al cargar productos: " + ex.getMessage());
+        }
+    }
+
+    private void llenarTabla(List<Producto> lista) {
+        DefaultTableModel modelo = (DefaultTableModel) tablaInventario.getModel();
+        modelo.setRowCount(0);
+        for (Producto p : lista) {
+            modelo.addRow(new Object[]{
+                p.getCodigo(), p.getNombre(), p.getStock(),
+                p.getVence() != null ? p.getVence().toString() : "-"
+            });
+        }
+    }
+
+    private void actualizarAlerta(com.mycompany.bigotes_colas.controlador.Inventario controlador) throws SQLException {
+        int bajoStock = controlador.listarBajoStockMinimo().size();
+        int porVencer = controlador.listarProximosAVencer().size();
+        lblAlertaStock.setText("\u26A0 " + bajoStock + " productos bajo stock minimo - " + porVencer + " por vencer");
+    }
+
+    private void btnBuscarProductoActionPerformed(java.awt.event.ActionEvent evt) {
+        try {
+            com.mycompany.bigotes_colas.controlador.Inventario controlador =
+                    new com.mycompany.bigotes_colas.controlador.Inventario();
+            productosActuales = controlador.buscar(txtBuscarProducto.getText());
+            llenarTabla(productosActuales);
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Error al buscar: " + ex.getMessage());
+        }
+    }
+
+    private void btnRegistrarEntradaActionPerformed(java.awt.event.ActionEvent evt) {
+        int fila = tablaInventario.getSelectedRow();
+        if (fila == -1) {
+            JOptionPane.showMessageDialog(this, "Selecciona un producto de la tabla primero.");
+            return;
+        }
+        String codigo = tablaInventario.getValueAt(fila, 0).toString();
+        String cantidadTexto = JOptionPane.showInputDialog(this, "Cantidad a ingresar:");
+        if (cantidadTexto == null) return;
+
+        try {
+            int cantidad = Integer.parseInt(cantidadTexto);
+            com.mycompany.bigotes_colas.controlador.Inventario controlador =
+                    new com.mycompany.bigotes_colas.controlador.Inventario();
+            Producto p = controlador.buscar(codigo).get(0);
+            controlador.registrarEntrada(p.getIdProducto(), cantidad);
+            cargarProductos();
+            JOptionPane.showMessageDialog(this, "Entrada registrada.");
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "La cantidad debe ser un numero.");
+        } catch (IllegalArgumentException | SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
+        }
+    }
+
+    private void btnRegistrarSalidaActionPerformed(java.awt.event.ActionEvent evt) {
+        int fila = tablaInventario.getSelectedRow();
+        if (fila == -1) {
+            JOptionPane.showMessageDialog(this, "Selecciona un producto de la tabla primero.");
+            return;
+        }
+        String codigo = tablaInventario.getValueAt(fila, 0).toString();
+        int stockActual = (int) tablaInventario.getValueAt(fila, 2);
+        String cantidadTexto = JOptionPane.showInputDialog(this, "Cantidad a retirar:");
+        if (cantidadTexto == null) return;
+
+        try {
+            int cantidad = Integer.parseInt(cantidadTexto);
+            com.mycompany.bigotes_colas.controlador.Inventario controlador =
+                    new com.mycompany.bigotes_colas.controlador.Inventario();
+            Producto p = controlador.buscar(codigo).get(0);
+            controlador.registrarSalida(p.getIdProducto(), cantidad, stockActual);
+            cargarProductos();
+            JOptionPane.showMessageDialog(this, "Salida registrada.");
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "La cantidad debe ser un numero.");
+        } catch (com.mycompany.bigotes_colas.controlador.StockInsuficienteException ex) {
+            JOptionPane.showMessageDialog(this, "Stock insuficiente: " + ex.getMessage(),
+                    "No se puede registrar la salida", JOptionPane.WARNING_MESSAGE);
+        } catch (IllegalArgumentException | SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
+        }
+    }
+
+    private void btnNuevoProductoActionPerformed(java.awt.event.ActionEvent evt) {
+        String codigo = JOptionPane.showInputDialog(this, "Codigo (ej. M-020):");
+        if (codigo == null) return;
+        String nombre = JOptionPane.showInputDialog(this, "Nombre del producto:");
+        if (nombre == null) return;
+        String categoria = JOptionPane.showInputDialog(this, "Categoria (Medicamento/Vacuna/Alimento/Otro):");
+        String precioTexto = JOptionPane.showInputDialog(this, "Precio:");
+        String stockMinTexto = JOptionPane.showInputDialog(this, "Stock minimo:");
+
+        try {
+            double precio = Double.parseDouble(precioTexto);
+            int stockMin = Integer.parseInt(stockMinTexto);
+            com.mycompany.bigotes_colas.controlador.Inventario controlador =
+                    new com.mycompany.bigotes_colas.controlador.Inventario();
+            controlador.agregarProducto(codigo, nombre, categoria, precio, stockMin, null);
+            cargarProductos();
+            JOptionPane.showMessageDialog(this, "Producto agregado (stock inicial 0, usa Registrar entrada para cargarlo).");
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Precio y stock minimo deben ser numeros.");
+        } catch (IllegalArgumentException | SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
+        }
+    }
 
     private void btnNavUsuariosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnNavUsuariosActionPerformed
         // TODO add your handling code here:

@@ -1,419 +1,564 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
 package com.mycompany.bigotes_colas.views;
 
-import javax.swing.JOptionPane;
+import com.mycompany.bigotes_colas.model.CitaConsulta;
+import com.mycompany.bigotes_colas.model.Cliente;
+import com.mycompany.bigotes_colas.model.Mascota;
+import com.mycompany.bigotes_colas.model.Usuario;
+import com.mycompany.bigotes_colas.util.Sesion;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
+ * RF-04: Agenda de citas.
+ * La fecha se elige en un calendario y la hora de una lista que solo muestra
+ * los horarios libres del veterinario seleccionado.
  *
  * @author gbcya
  */
-public class Citas extends javax.swing.JFrame {
-    
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Citas.class.getName());
+public class Citas extends JFrame {
 
-    /**
-     * Creates new form Citas
-     */
+    private static final Logger logger = Logger.getLogger(Citas.class.getName());
+
+    // Horario de atención: de 08:00 a 18:00, citas cada 30 minutos
+    private static final LocalTime HORA_INICIO = LocalTime.of(8, 0);
+    private static final LocalTime HORA_FIN = LocalTime.of(18, 0);
+    private static final int INTERVALO_MINUTOS = 30;
+    // Cuántos días hacia adelante se pueden elegir para una cita
+    private static final int DIAS_DISPONIBLES = 60;
+
+    private static final Color VERDE_OSCURO = new Color(27, 59, 59);
+    private static final Color VERDE = new Color(46, 125, 107);
+    private static final Color FONDO_SIDEBAR = new Color(233, 243, 241);
+    private static final Color GRIS_TEXTO = new Color(74, 74, 74);
+    private static final Color TEXTO_SUAVE = new Color(207, 227, 223);
+    private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter FORMATO_HORA = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter FORMATO_FECHA_LARGA =
+            DateTimeFormatter.ofPattern("EEEE dd/MM/yyyy", Locale.forLanguageTag("es-GT"));
+
+    private final com.mycompany.bigotes_colas.controlador.CitaConsulta controlador =
+            new com.mycompany.bigotes_colas.controlador.CitaConsulta();
+
+    private final Map<Integer, Mascota> mascotas = new LinkedHashMap<>();
+    private final Map<Integer, String> nombresClientes = new HashMap<>();
+    private final Map<Integer, String> nombresVeterinarios = new LinkedHashMap<>();
+    private List<CitaConsulta> citasPendientes = new ArrayList<>();
+
+    private JLabel lblUsuarioSesion;
+    private JLabel lblContexto;
+    private JLabel lblHorasInfo;
+    private JTable tablaCitas;
+    private DefaultTableModel modeloTabla;
+    private JComboBox<Opcion> comboMascota;
+    private JComboBox<Opcion> comboVeterinario;
+    private JComboBox<LocalDate> comboFecha;
+    private JComboBox<LocalTime> comboHora;
+    private JTextField txtMotivo;
+    private JButton btnAgendar;
+
     public Citas() {
         initComponents();
+        mostrarSesion();
+        cargarDatos();
+        pack();
+        setMinimumSize(new Dimension(900, 700));
+        setLocationRelativeTo(null);
+    }
+
+    // ===================== Construcción de la interfaz =====================
+
+    private void initComponents() {
+        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        setTitle("Bigotes & Colas - Citas");
+
+        JPanel raiz = new JPanel(new BorderLayout(20, 0));
+        raiz.setBorder(new EmptyBorder(10, 10, 10, 10));
+        raiz.add(crearSidebar(), BorderLayout.WEST);
+
+        JPanel centro = new JPanel(new BorderLayout(0, 15));
+        centro.setBorder(new EmptyBorder(20, 0, 10, 10));
+        centro.add(crearEncabezado(), BorderLayout.NORTH);
+        centro.add(crearPanelTabla(), BorderLayout.CENTER);
+        centro.add(crearFormulario(), BorderLayout.SOUTH);
+        raiz.add(centro, BorderLayout.CENTER);
+
+        setContentPane(raiz);
+        setPreferredSize(new Dimension(980, 780));
+    }
+
+    private JPanel crearSidebar() {
+        JPanel sidebar = new JPanel();
+        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
+        sidebar.setBackground(FONDO_SIDEBAR);
+        sidebar.setBorder(new EmptyBorder(18, 12, 18, 12));
+
+        agregarNav(sidebar, "Clientes", false, () -> new Clientes().setVisible(true));
+        agregarNav(sidebar, "Mascotas", false, () -> new Mascotas().setVisible(true));
+        agregarNav(sidebar, "Historial", false, () -> new Historial().setVisible(true));
+        agregarNav(sidebar, "Citas", true, null);
+        agregarNav(sidebar, "Inventario", false, () -> new Inventario().setVisible(true));
+        agregarNav(sidebar, "Reportes", false, () -> new Reportes().setVisible(true));
+        agregarNav(sidebar, "Usuarios", false, () -> new Usuarios().setVisible(true));
+        sidebar.add(Box.createVerticalGlue());
+        return sidebar;
+    }
+
+    private void agregarNav(JPanel sidebar, String texto, boolean activo, Runnable abrir) {
+        JButton boton = new JButton(texto);
+        boton.setFont(new Font("Arial", activo ? Font.BOLD : Font.PLAIN, 12));
+        boton.setBackground(activo ? VERDE : FONDO_SIDEBAR);
+        boton.setForeground(activo ? Color.WHITE : GRIS_TEXTO);
+        boton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        boton.setPreferredSize(new Dimension(110, 26));
+        boton.setMaximumSize(new Dimension(110, 26));
+        if (abrir != null) {
+            boton.addActionListener(e -> {
+                abrir.run();
+                dispose();
+            });
+        }
+        sidebar.add(boton);
+        sidebar.add(Box.createVerticalStrut(16));
+    }
+
+    private JPanel crearEncabezado() {
+        JPanel encabezado = new JPanel(new BorderLayout());
+        encabezado.setBackground(VERDE_OSCURO);
+        encabezado.setBorder(new EmptyBorder(36, 30, 40, 30));
+
+        JPanel izquierda = new JPanel();
+        izquierda.setLayout(new BoxLayout(izquierda, BoxLayout.X_AXIS));
+        izquierda.setOpaque(false);
+
+        JLabel lblMarca = new JLabel("Bigotes & Colas");
+        lblMarca.setFont(new Font("Courier New", Font.BOLD, 20));
+        lblMarca.setForeground(Color.WHITE);
+
+        JLabel lblSubtitulo = new JLabel("| Citas");
+        lblSubtitulo.setForeground(TEXTO_SUAVE);
+
+        izquierda.add(lblMarca);
+        izquierda.add(Box.createHorizontalStrut(60));
+        izquierda.add(lblSubtitulo);
+
+        lblUsuarioSesion = new JLabel("Sesión: -");
+        lblUsuarioSesion.setForeground(Color.WHITE);
+        lblUsuarioSesion.setFont(lblUsuarioSesion.getFont().deriveFont(Font.BOLD));
+
+        encabezado.add(izquierda, BorderLayout.WEST);
+        encabezado.add(lblUsuarioSesion, BorderLayout.EAST);
+        return encabezado;
+    }
+
+    private JPanel crearPanelTabla() {
+        JPanel panel = new JPanel(new BorderLayout(0, 8));
+
+        JPanel barra = new JPanel(new BorderLayout());
+        lblContexto = new JLabel(" ");
+        lblContexto.setFont(lblContexto.getFont().deriveFont(Font.BOLD, 13f));
+        lblContexto.setForeground(VERDE_OSCURO);
+        barra.add(lblContexto, BorderLayout.WEST);
+
+        JPanel acciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        JButton btnAtender = new JButton("Atender");
+        btnAtender.setToolTipText("Abrir el historial de la mascota para registrar el diagnóstico");
+        btnAtender.addActionListener(e -> atenderCita());
+        JButton btnCancelar = new JButton("Cancelar cita");
+        btnCancelar.addActionListener(e -> cancelarCita());
+        acciones.add(btnAtender);
+        acciones.add(btnCancelar);
+        barra.add(acciones, BorderLayout.EAST);
+
+        modeloTabla = new DefaultTableModel(
+                new String[] { "Fecha", "Hora", "Mascota", "Dueño", "Veterinario", "Motivo" }, 0) {
+            @Override
+            public boolean isCellEditable(int fila, int columna) {
+                return false;
+            }
+        };
+        tablaCitas = new JTable(modeloTabla);
+        tablaCitas.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        tablaCitas.getTableHeader().setReorderingAllowed(false);
+        tablaCitas.setRowHeight(22);
+        int[] anchos = { 80, 55, 90, 110, 110, 170 };
+        for (int i = 0; i < anchos.length; i++) {
+            tablaCitas.getColumnModel().getColumn(i).setPreferredWidth(anchos[i]);
+        }
+
+        panel.add(barra, BorderLayout.NORTH);
+        panel.add(new JScrollPane(tablaCitas), BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel crearFormulario() {
+        JPanel form = new JPanel(new GridBagLayout());
+        form.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(210, 220, 218)),
+                new EmptyBorder(12, 30, 0, 30)));
+
+        JLabel lblTitulo = new JLabel("Nueva cita");
+        lblTitulo.setFont(new Font("Arial", Font.BOLD, 14));
+        GridBagConstraints gTitulo = new GridBagConstraints();
+        gTitulo.gridx = 0;
+        gTitulo.gridy = 0;
+        gTitulo.gridwidth = 3;
+        gTitulo.insets = new Insets(0, 0, 10, 0);
+        form.add(lblTitulo, gTitulo);
+
+        comboMascota = new JComboBox<>();
+        comboVeterinario = new JComboBox<>();
+        comboVeterinario.addActionListener(e -> actualizarHorasDisponibles());
+
+        // --- Fecha: lista de días (solo se elige, no se escribe) ---
+        comboFecha = new JComboBox<>();
+        LocalDate hoy = LocalDate.now();
+        for (int i = 0; i < DIAS_DISPONIBLES; i++) {
+            comboFecha.addItem(hoy.plusDays(i));
+        }
+        comboFecha.setMaximumRowCount(12);
+        comboFecha.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> lista, Object valor, int indice,
+                                                          boolean seleccionado, boolean foco) {
+                Object texto = (valor instanceof LocalDate f) ? textoFecha(f) : valor;
+                return super.getListCellRendererComponent(lista, texto, indice, seleccionado, foco);
+            }
+        });
+        comboFecha.addActionListener(e -> actualizarHorasDisponibles());
+
+        // --- Hora: solo horarios libres ---
+        comboHora = new JComboBox<>();
+        comboHora.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> lista, Object valor, int indice,
+                                                          boolean seleccionado, boolean foco) {
+                Object texto = (valor instanceof LocalTime h) ? h.format(FORMATO_HORA) : valor;
+                return super.getListCellRendererComponent(lista, texto, indice, seleccionado, foco);
+            }
+        });
+        lblHorasInfo = new JLabel(" ");
+        lblHorasInfo.setForeground(new Color(110, 110, 110));
+        lblHorasInfo.setFont(lblHorasInfo.getFont().deriveFont(Font.ITALIC, 11f));
+
+        txtMotivo = new JTextField(26);
+
+        agregarFila(form, 1, "Mascota", comboMascota, null);
+        agregarFila(form, 2, "Veterinario", comboVeterinario, null);
+        agregarFila(form, 3, "Fecha", comboFecha, null);
+        agregarFila(form, 4, "Hora", comboHora, lblHorasInfo);
+        agregarFila(form, 5, "Motivo", txtMotivo, null);
+
+        JLabel lblNota = new JLabel("Elige la fecha y la hora de la lista: solo aparecen los horarios libres del veterinario.");
+        lblNota.setFont(new Font("Arial", Font.PLAIN, 11));
+        lblNota.setForeground(new Color(110, 110, 110));
+        GridBagConstraints gNota = new GridBagConstraints();
+        gNota.gridx = 0;
+        gNota.gridy = 6;
+        gNota.gridwidth = 3;
+        gNota.insets = new Insets(10, 0, 8, 0);
+        form.add(lblNota, gNota);
+
+        btnAgendar = new JButton("Agendar cita");
+        btnAgendar.setBackground(VERDE);
+        btnAgendar.setForeground(Color.WHITE);
+        btnAgendar.setFont(new Font("Arial", Font.BOLD, 12));
+        btnAgendar.setFocusPainted(false);
+        btnAgendar.addActionListener(e -> agendarCita());
+        GridBagConstraints gBoton = new GridBagConstraints();
+        gBoton.gridx = 0;
+        gBoton.gridy = 7;
+        gBoton.gridwidth = 3;
+        gBoton.insets = new Insets(0, 0, 4, 0);
+        form.add(btnAgendar, gBoton);
+
+        return form;
+    }
+
+    private void agregarFila(JPanel form, int fila, String etiqueta, JComponent campo, JComponent extra) {
+        GridBagConstraints g = new GridBagConstraints();
+        g.gridx = 0;
+        g.gridy = fila;
+        g.anchor = GridBagConstraints.WEST;
+        g.insets = new Insets(5, 0, 5, 20);
+        JLabel lbl = new JLabel(etiqueta);
+        lbl.setFont(new Font("Arial", Font.BOLD, 12));
+        form.add(lbl, g);
+
+        g.gridx = 1;
+        g.insets = new Insets(5, 0, 5, 10);
+        form.add(campo, g);
+
+        if (extra != null) {
+            g.gridx = 2;
+            form.add(extra, g);
+        }
+    }
+
+    // ===================== Carga de datos =====================
+
+    private void mostrarSesion() {
+        Usuario usuario = Sesion.getUsuarioActual();
+        if (usuario != null) {
+            lblUsuarioSesion.setText("Sesión: " + usuario.getNombre() + " (" + usuario.getRol() + ")");
+        }
+    }
+
+    private void cargarDatos() {
+        try {
+            for (Cliente c : new com.mycompany.bigotes_colas.controlador.Cliente().listar()) {
+                nombresClientes.put(c.getIdCliente(), c.getNombre());
+            }
+
+            comboMascota.removeAllItems();
+            for (Mascota m : new com.mycompany.bigotes_colas.controlador.Mascota().listar()) {
+                mascotas.put(m.getIdMascota(), m);
+                String dueno = nombresClientes.getOrDefault(m.getIdCliente(), "sin dueño");
+                comboMascota.addItem(new Opcion(m.getIdMascota(), m.getNombre() + "  (" + dueno + ")"));
+            }
+
+            comboVeterinario.removeAllItems();
+            for (Usuario u : controlador.listarVeterinarios()) {
+                nombresVeterinarios.put(u.getIdUsuario(), u.getNombre());
+                comboVeterinario.addItem(new Opcion(u.getIdUsuario(), u.getNombre()));
+            }
+            preseleccionarVeterinarioEnSesion();
+
+            citasPendientes = controlador.listarCitasPendientes();
+        } catch (SQLException ex) {
+            logger.log(Level.SEVERE, "Error al cargar datos de citas", ex);
+            JOptionPane.showMessageDialog(this, "Error al cargar datos: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+        llenarTabla();
+        actualizarHorasDisponibles();
+    }
+
+    private void recargarCitas() {
+        try {
+            citasPendientes = controlador.listarCitasPendientes();
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Error al recargar citas: " + ex.getMessage());
+        }
+        llenarTabla();
+        actualizarHorasDisponibles();
+    }
+
+    /** Si quien inició sesión es veterinario, queda seleccionado por defecto. */
+    private void preseleccionarVeterinarioEnSesion() {
+        Usuario usuario = Sesion.getUsuarioActual();
+        if (usuario == null) return;
+        for (int i = 0; i < comboVeterinario.getItemCount(); i++) {
+            if (comboVeterinario.getItemAt(i).id == usuario.getIdUsuario()) {
+                comboVeterinario.setSelectedIndex(i);
+                return;
+            }
+        }
+    }
+
+    private void llenarTabla() {
+        modeloTabla.setRowCount(0);
+        for (CitaConsulta c : citasPendientes) {
+            Mascota m = mascotas.get(c.getIdMascota());
+            String nombreMascota = (m != null) ? m.getNombre() : "#" + c.getIdMascota();
+            String dueno = (m != null) ? nombresClientes.getOrDefault(m.getIdCliente(), "") : "";
+            modeloTabla.addRow(new Object[] {
+                c.getFecha() != null ? c.getFecha().format(FORMATO_FECHA) : "-",
+                c.getHora() != null ? c.getHora().format(FORMATO_HORA) : "-",
+                nombreMascota,
+                dueno,
+                nombresVeterinarios.getOrDefault(c.getIdVeterinario(), "Desconocido"),
+                c.getMotivo()
+            });
+        }
+        int total = citasPendientes.size();
+        lblContexto.setText(total == 1 ? "1 cita pendiente" : total + " citas pendientes");
     }
 
     /**
-     * This method is called from within the constructor to initialize the form.
-     * WARNING: Do NOT modify this code. The content of this method is always
-     * regenerated by the Form Editor.
+     * Llena el combo de horas con los horarios libres del veterinario en la
+     * fecha elegida (quita los ocupados y, si es hoy, los que ya pasaron).
      */
-    @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
-    private void initComponents() {
+    private void actualizarHorasDisponibles() {
+        if (comboHora == null || comboFecha == null || btnAgendar == null) return; // aún construyendo
 
-        pnlEncabezado = new javax.swing.JPanel();
-        lblMarca = new javax.swing.JLabel();
-        lblSubtituloPantalla = new javax.swing.JLabel();
-        lblUsuarioSesion = new javax.swing.JLabel();
-        pnlSidebar = new javax.swing.JPanel();
-        btnNavClientes = new javax.swing.JButton();
-        btnNavMascotas = new javax.swing.JButton();
-        btnNavHistorial = new javax.swing.JButton();
-        btnNavCitas = new javax.swing.JButton();
-        btnNavInventario = new javax.swing.JButton();
-        btnNavReportes = new javax.swing.JButton();
-        btnNavUsuarios = new javax.swing.JButton();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        tablaCitas = new javax.swing.JTable();
-        pnlFormularioCita = new javax.swing.JPanel();
-        lblCitaNueva = new javax.swing.JLabel();
-        comboMascotaCita = new javax.swing.JComboBox<>();
-        comboVeterinario = new javax.swing.JComboBox<>();
-        txtFecha = new javax.swing.JTextField();
-        txtHora = new javax.swing.JTextField();
-        txtMotivo = new javax.swing.JTextField();
-        lblNota = new javax.swing.JLabel();
-        btnAgendarCita = new javax.swing.JButton();
-        lblMascota = new javax.swing.JLabel();
-        lblVeterinario = new javax.swing.JLabel();
-        lblFecha = new javax.swing.JLabel();
-        lblHora = new javax.swing.JLabel();
-        lblMotivo = new javax.swing.JLabel();
+        LocalTime horaPrevia = (LocalTime) comboHora.getSelectedItem();
+        comboHora.removeAllItems();
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        LocalDate fecha = (LocalDate) comboFecha.getSelectedItem();
+        Opcion veterinario = (Opcion) comboVeterinario.getSelectedItem();
 
-        pnlEncabezado.setBackground(new java.awt.Color(27, 59, 59));
-        pnlEncabezado.setForeground(new java.awt.Color(255, 255, 255));
+        if (fecha != null && veterinario != null) {
+            Set<LocalTime> ocupadas = citasPendientes.stream()
+                    .filter(c -> c.getIdVeterinario() == veterinario.id)
+                    .filter(c -> fecha.equals(c.getFecha()) && c.getHora() != null)
+                    .map(c -> c.getHora().withSecond(0).withNano(0))
+                    .collect(Collectors.toSet());
 
-        lblMarca.setFont(new java.awt.Font("Courier New", 1, 20)); // NOI18N
-        lblMarca.setForeground(new java.awt.Color(255, 255, 255));
-        lblMarca.setText("Bigotes & Colas");
+            boolean esHoy = fecha.equals(LocalDate.now());
+            LocalTime ahora = LocalTime.now();
+            LocalTime ultimaHora = HORA_FIN.minusMinutes(INTERVALO_MINUTOS);
 
-        lblSubtituloPantalla.setForeground(new java.awt.Color(207, 227, 223));
-        lblSubtituloPantalla.setText(" | Citas");
-
-        lblUsuarioSesion.setForeground(new java.awt.Color(255, 255, 255));
-        lblUsuarioSesion.setText("Sesion: Administrador");
-
-        javax.swing.GroupLayout pnlEncabezadoLayout = new javax.swing.GroupLayout(pnlEncabezado);
-        pnlEncabezado.setLayout(pnlEncabezadoLayout);
-        pnlEncabezadoLayout.setHorizontalGroup(
-            pnlEncabezadoLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(pnlEncabezadoLayout.createSequentialGroup()
-                .addGap(30, 30, 30)
-                .addComponent(lblMarca)
-                .addGap(60, 60, 60)
-                .addComponent(lblSubtituloPantalla)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 73, Short.MAX_VALUE)
-                .addComponent(lblUsuarioSesion)
-                .addGap(33, 33, 33))
-        );
-        pnlEncabezadoLayout.setVerticalGroup(
-            pnlEncabezadoLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(pnlEncabezadoLayout.createSequentialGroup()
-                .addGap(36, 36, 36)
-                .addGroup(pnlEncabezadoLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(lblMarca)
-                    .addComponent(lblSubtituloPantalla)
-                    .addComponent(lblUsuarioSesion))
-                .addContainerGap(48, Short.MAX_VALUE))
-        );
-
-        pnlSidebar.setBackground(new java.awt.Color(233, 243, 241));
-
-        btnNavClientes.setBackground(new java.awt.Color(255, 255, 255));
-        btnNavClientes.setFont(new java.awt.Font("Arial", 1, 12)); // NOI18N
-        btnNavClientes.setForeground(new java.awt.Color(74, 74, 74));
-        btnNavClientes.setText("Clientes");
-
-        btnNavMascotas.setBackground(new java.awt.Color(233, 243, 241));
-        btnNavMascotas.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        btnNavMascotas.setForeground(new java.awt.Color(74, 74, 74));
-        btnNavMascotas.setText("Mascotas");
-        btnNavMascotas.addActionListener(this::btnNavMascotasActionPerformed);
-
-        btnNavHistorial.setBackground(new java.awt.Color(233, 243, 241));
-        btnNavHistorial.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        btnNavHistorial.setForeground(new java.awt.Color(74, 74, 74));
-        btnNavHistorial.setText("Historial");
-        btnNavHistorial.addActionListener(this::btnNavHistorialActionPerformed);
-
-        btnNavCitas.setBackground(new java.awt.Color(46, 125, 107));
-        btnNavCitas.setFont(new java.awt.Font("Arial", 1, 12)); // NOI18N
-        btnNavCitas.setForeground(new java.awt.Color(255, 255, 255));
-        btnNavCitas.setText("Citas");
-        btnNavCitas.addActionListener(this::btnNavCitasActionPerformed);
-
-        btnNavInventario.setBackground(new java.awt.Color(233, 243, 241));
-        btnNavInventario.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        btnNavInventario.setForeground(new java.awt.Color(74, 74, 74));
-        btnNavInventario.setText("Inventario");
-        btnNavInventario.addActionListener(this::btnNavInventarioActionPerformed);
-
-        btnNavReportes.setBackground(new java.awt.Color(233, 243, 241));
-        btnNavReportes.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        btnNavReportes.setForeground(new java.awt.Color(74, 74, 74));
-        btnNavReportes.setText("Reportes");
-
-        btnNavUsuarios.setBackground(new java.awt.Color(233, 243, 241));
-        btnNavUsuarios.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        btnNavUsuarios.setForeground(new java.awt.Color(74, 74, 74));
-        btnNavUsuarios.setText("Usuarios");
-        btnNavUsuarios.addActionListener(this::btnNavUsuariosActionPerformed);
-
-        javax.swing.GroupLayout pnlSidebarLayout = new javax.swing.GroupLayout(pnlSidebar);
-        pnlSidebar.setLayout(pnlSidebarLayout);
-        pnlSidebarLayout.setHorizontalGroup(
-            pnlSidebarLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(pnlSidebarLayout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(pnlSidebarLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(btnNavClientes)
-                    .addComponent(btnNavMascotas)
-                    .addComponent(btnNavHistorial)
-                    .addComponent(btnNavCitas)
-                    .addComponent(btnNavInventario)
-                    .addComponent(btnNavReportes)
-                    .addComponent(btnNavUsuarios))
-                .addContainerGap(19, Short.MAX_VALUE))
-        );
-        pnlSidebarLayout.setVerticalGroup(
-            pnlSidebarLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(pnlSidebarLayout.createSequentialGroup()
-                .addGap(18, 18, 18)
-                .addComponent(btnNavClientes)
-                .addGap(18, 18, 18)
-                .addComponent(btnNavMascotas)
-                .addGap(18, 18, 18)
-                .addComponent(btnNavHistorial)
-                .addGap(18, 18, 18)
-                .addComponent(btnNavCitas)
-                .addGap(18, 18, 18)
-                .addComponent(btnNavInventario)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(btnNavReportes)
-                .addGap(18, 18, 18)
-                .addComponent(btnNavUsuarios)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-
-        tablaCitas.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-                {"09:00", "Firulais", "Maria Lopez", "Dr. Mendez", "Vacuna anual"},
-                {"09:30", "Michi", "Carlos Ruiz", "Dra. Solis", "Consulta general"},
-                {"10:00", "Rocky", "Ana Gomez", "Dr. Mendez", "Desparasitacion"},
-                {"11:30", "Luna", "Maria Lopez", "Dra. Solis", "Control de peso"},
-                {null, null, null, null, null}
-            },
-            new String [] {
-                "Hora", "Mascota", "Dueño", "Veterinario", "Motivo"
+            for (LocalTime h = HORA_INICIO; !h.isAfter(ultimaHora); h = h.plusMinutes(INTERVALO_MINUTOS)) {
+                if (esHoy && !h.isAfter(ahora)) continue;
+                if (ocupadas.contains(h)) continue;
+                comboHora.addItem(h);
             }
-        ));
-        jScrollPane1.setViewportView(tablaCitas);
-
-        pnlFormularioCita.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(233, 243, 241), 2));
-
-        lblCitaNueva.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
-        lblCitaNueva.setText("Nueva cita");
-
-        comboMascotaCita.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Firulais", "Michi", "Rocky", "Luna" }));
-
-        comboVeterinario.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Dr. Mendez", "Dra. Solis", " " }));
-
-        txtFecha.setText("dd/mm/aaaa");
-
-        txtHora.setText("hh:mm");
-
-        lblNota.setFont(new java.awt.Font("Arial Black", 1, 12)); // NOI18N
-        lblNota.setForeground(new java.awt.Color(74, 74, 74));
-        lblNota.setText("Se validara que no exista cruce de horario con el mismo veterinario.");
-
-        btnAgendarCita.setBackground(new java.awt.Color(46, 125, 107));
-        btnAgendarCita.setText("Agendar cita");
-        btnAgendarCita.addActionListener(this::btnAgendarCitaActionPerformed);
-
-        lblMascota.setText("Mascota");
-
-        lblVeterinario.setText("Veterinario");
-
-        lblFecha.setText("Fecha");
-
-        lblHora.setText("Hora");
-
-        lblMotivo.setText("Motivo");
-
-        javax.swing.GroupLayout pnlFormularioCitaLayout = new javax.swing.GroupLayout(pnlFormularioCita);
-        pnlFormularioCita.setLayout(pnlFormularioCitaLayout);
-        pnlFormularioCitaLayout.setHorizontalGroup(
-            pnlFormularioCitaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, pnlFormularioCitaLayout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(lblNota)
-                .addGap(39, 39, 39))
-            .addGroup(pnlFormularioCitaLayout.createSequentialGroup()
-                .addGroup(pnlFormularioCitaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(pnlFormularioCitaLayout.createSequentialGroup()
-                        .addGap(45, 45, 45)
-                        .addGroup(pnlFormularioCitaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(lblMascota)
-                            .addComponent(lblVeterinario)
-                            .addComponent(lblFecha)
-                            .addComponent(lblHora)
-                            .addComponent(lblMotivo))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addGroup(pnlFormularioCitaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(txtHora, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(txtFecha, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(comboVeterinario, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(comboMascotaCita, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(txtMotivo, javax.swing.GroupLayout.PREFERRED_SIZE, 172, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                    .addGroup(pnlFormularioCitaLayout.createSequentialGroup()
-                        .addGap(143, 143, 143)
-                        .addComponent(btnAgendarCita))
-                    .addGroup(pnlFormularioCitaLayout.createSequentialGroup()
-                        .addGap(203, 203, 203)
-                        .addComponent(lblCitaNueva)))
-                .addContainerGap(245, Short.MAX_VALUE))
-        );
-        pnlFormularioCitaLayout.setVerticalGroup(
-            pnlFormularioCitaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(pnlFormularioCitaLayout.createSequentialGroup()
-                .addGap(12, 12, 12)
-                .addComponent(lblCitaNueva)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(pnlFormularioCitaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addGroup(pnlFormularioCitaLayout.createSequentialGroup()
-                        .addGroup(pnlFormularioCitaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(comboMascotaCita, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(lblMascota))
-                        .addGap(18, 18, 18)
-                        .addGroup(pnlFormularioCitaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(comboVeterinario, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(lblVeterinario))
-                        .addGap(18, 18, 18)
-                        .addComponent(txtFecha, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(lblFecha))
-                .addGap(18, 18, 18)
-                .addGroup(pnlFormularioCitaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(txtHora, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(lblHora))
-                .addGap(18, 18, 18)
-                .addGroup(pnlFormularioCitaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(txtMotivo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(lblMotivo))
-                .addGap(18, 18, 18)
-                .addComponent(lblNota)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(btnAgendarCita)
-                .addContainerGap(11, Short.MAX_VALUE))
-        );
-
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap(134, Short.MAX_VALUE)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(pnlFormularioCita, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 527, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(95, 95, 95))
-            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(layout.createSequentialGroup()
-                    .addContainerGap()
-                    .addComponent(pnlSidebar, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGap(30, 30, 30)
-                    .addComponent(pnlEncabezado, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addContainerGap(93, Short.MAX_VALUE)))
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap(228, Short.MAX_VALUE)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
-                .addComponent(pnlFormularioCita, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                    .addContainerGap()
-                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(layout.createSequentialGroup()
-                            .addGap(32, 32, 32)
-                            .addComponent(pnlEncabezado, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addGap(819, 819, 819))
-                        .addComponent(pnlSidebar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                    .addContainerGap()))
-        );
-
-        pack();
-    }// </editor-fold>//GEN-END:initComponents
-
-    private void btnNavMascotasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnNavMascotasActionPerformed
-        // TODO add your handling code here:
-        new Mascotas().setVisible(true);
-        this.dispose();
-    }//GEN-LAST:event_btnNavMascotasActionPerformed
-
-    private void btnNavHistorialActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnNavHistorialActionPerformed
-        // TODO add your handling code here:
-        new Historial().setVisible(true);
-        this.dispose();
-    }//GEN-LAST:event_btnNavHistorialActionPerformed
-
-    private void btnNavCitasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnNavCitasActionPerformed
-        // TODO add your handling code here:
-      
-    }//GEN-LAST:event_btnNavCitasActionPerformed
-
-    private void btnNavInventarioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnNavInventarioActionPerformed
-        // TODO add your handling code here:
-        new Inventario().setVisible(true);
-        this.dispose();
-    }//GEN-LAST:event_btnNavInventarioActionPerformed
-
-    private void btnNavUsuariosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnNavUsuariosActionPerformed
-        // TODO add your handling code here:
-        new Usuarios().setVisible(true);
-        this.dispose();
-    }//GEN-LAST:event_btnNavUsuariosActionPerformed
-
-    private void btnAgendarCitaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAgendarCitaActionPerformed
-        // TODO add your handling code here:
-        JOptionPane.showMessageDialog(this, "Accion de prototipo: \"Agendar cita\"\n(sin logica de negocio todavia)", "Prototipo no funcional", JOptionPane.INFORMATION_MESSAGE);
-    }//GEN-LAST:event_btnAgendarCitaActionPerformed
-
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
-            logger.log(java.util.logging.Level.SEVERE, null, ex);
         }
-        //</editor-fold>
 
-        /* Create and display the form */
+        int libres = comboHora.getItemCount();
+        boolean hayHoras = libres > 0;
+        comboHora.setEnabled(hayHoras);
+        btnAgendar.setEnabled(hayHoras && comboMascota.getItemCount() > 0);
+
+        if (veterinario == null) {
+            lblHorasInfo.setText("Primero elige un veterinario");
+        } else if (hayHoras) {
+            lblHorasInfo.setText(libres == 1 ? "1 horario libre" : libres + " horarios libres");
+        } else {
+            lblHorasInfo.setText("Sin horarios libres ese día, elige otra fecha");
+        }
+
+        if (horaPrevia != null) {
+            comboHora.setSelectedItem(horaPrevia); // conserva la hora si sigue libre
+        }
+    }
+
+    // ===================== Acciones =====================
+
+    private void agendarCita() {
+        Opcion mascota = (Opcion) comboMascota.getSelectedItem();
+        Opcion veterinario = (Opcion) comboVeterinario.getSelectedItem();
+        LocalDate fecha = (LocalDate) comboFecha.getSelectedItem();
+        LocalTime hora = (LocalTime) comboHora.getSelectedItem();
+        String motivo = txtMotivo.getText().trim();
+
+        if (mascota == null) {
+            JOptionPane.showMessageDialog(this, "Selecciona una mascota.");
+            return;
+        }
+        if (veterinario == null) {
+            JOptionPane.showMessageDialog(this, "Selecciona un veterinario.");
+            return;
+        }
+        if (fecha == null || hora == null) {
+            JOptionPane.showMessageDialog(this, "Selecciona la fecha y la hora.");
+            return;
+        }
+        if (motivo.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Escribe el motivo de la cita.");
+            txtMotivo.requestFocus();
+            return;
+        }
+
+        try {
+            controlador.agendarCita(mascota.id, veterinario.id, fecha, hora, motivo);
+            JOptionPane.showMessageDialog(this,
+                    "Cita agendada:\n" + mascotas.get(mascota.id).getNombre()
+                    + " con " + veterinario.texto
+                    + "\n" + fecha.format(FORMATO_FECHA) + " a las " + hora.format(FORMATO_HORA),
+                    "Cita agendada", JOptionPane.INFORMATION_MESSAGE);
+            txtMotivo.setText("");
+            recargarCitas();
+        } catch (IllegalStateException ex) { // cruce de horario
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Horario ocupado", JOptionPane.WARNING_MESSAGE);
+            recargarCitas();
+        } catch (IllegalArgumentException | SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Error al agendar: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void cancelarCita() {
+        CitaConsulta cita = obtenerSeleccionada();
+        if (cita == null) return;
+
+        Mascota m = mascotas.get(cita.getIdMascota());
+        String nombre = (m != null) ? m.getNombre() : "la mascota";
+        int confirmar = JOptionPane.showConfirmDialog(this,
+                "¿Cancelar la cita de " + nombre + " del "
+                + (cita.getFecha() != null ? cita.getFecha().format(FORMATO_FECHA) : "-")
+                + (cita.getHora() != null ? " a las " + cita.getHora().format(FORMATO_HORA) : "") + "?",
+                "Cancelar cita", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (confirmar != JOptionPane.YES_OPTION) return;
+
+        try {
+            controlador.eliminar(cita.getIdCitaConsulta());
+            recargarCitas();
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Error al cancelar: " + ex.getMessage());
+        }
+    }
+
+    /** Abre el historial de la mascota; ahí se usa "Atender cita" para registrar el diagnóstico. */
+    private void atenderCita() {
+        CitaConsulta cita = obtenerSeleccionada();
+        if (cita == null) return;
+
+        Mascota m = mascotas.get(cita.getIdMascota());
+        if (m == null) {
+            JOptionPane.showMessageDialog(this, "No se encontró la mascota de esta cita.");
+            return;
+        }
+        new Historial(m).setVisible(true);
+        dispose();
+    }
+
+    // ===================== Utilidades =====================
+
+    private CitaConsulta obtenerSeleccionada() {
+        int filaVista = tablaCitas.getSelectedRow();
+        if (filaVista == -1) {
+            JOptionPane.showMessageDialog(this, "Selecciona una cita de la tabla primero.");
+            return null;
+        }
+        int fila = tablaCitas.convertRowIndexToModel(filaVista);
+        return (fila < citasPendientes.size()) ? citasPendientes.get(fila) : null;
+    }
+
+    /** "Hoy - lunes 28/09/2026", "Mañana - martes 29/09/2026", "miércoles 30/09/2026"... */
+    private static String textoFecha(LocalDate fecha) {
+        String larga = fecha.format(FORMATO_FECHA_LARGA);
+        larga = Character.toUpperCase(larga.charAt(0)) + larga.substring(1);
+        LocalDate hoy = LocalDate.now();
+        if (fecha.equals(hoy)) return "Hoy - " + larga;
+        if (fecha.equals(hoy.plusDays(1))) return "Mañana - " + larga;
+        return larga;
+    }
+
+    /** Elemento de combo con id + texto visible. */
+    private static final class Opcion {
+        final int id;
+        final String texto;
+
+        Opcion(int id, String texto) {
+            this.id = id;
+            this.texto = texto;
+        }
+
+        @Override
+        public String toString() {
+            return texto;
+        }
+    }
+
+    public static void main(String[] args) {
         java.awt.EventQueue.invokeLater(() -> new Citas().setVisible(true));
     }
-
-    // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btnAgendarCita;
-    private javax.swing.JButton btnNavCitas;
-    private javax.swing.JButton btnNavClientes;
-    private javax.swing.JButton btnNavHistorial;
-    private javax.swing.JButton btnNavInventario;
-    private javax.swing.JButton btnNavMascotas;
-    private javax.swing.JButton btnNavReportes;
-    private javax.swing.JButton btnNavUsuarios;
-    private javax.swing.JComboBox<String> comboMascotaCita;
-    private javax.swing.JComboBox<String> comboVeterinario;
-    private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JLabel lblCitaNueva;
-    private javax.swing.JLabel lblFecha;
-    private javax.swing.JLabel lblHora;
-    private javax.swing.JLabel lblMarca;
-    private javax.swing.JLabel lblMascota;
-    private javax.swing.JLabel lblMotivo;
-    private javax.swing.JLabel lblNota;
-    private javax.swing.JLabel lblSubtituloPantalla;
-    private javax.swing.JLabel lblUsuarioSesion;
-    private javax.swing.JLabel lblVeterinario;
-    private javax.swing.JPanel pnlEncabezado;
-    private javax.swing.JPanel pnlFormularioCita;
-    private javax.swing.JPanel pnlSidebar;
-    private javax.swing.JTable tablaCitas;
-    private javax.swing.JTextField txtFecha;
-    private javax.swing.JTextField txtHora;
-    private javax.swing.JTextField txtMotivo;
-    // End of variables declaration//GEN-END:variables
 }

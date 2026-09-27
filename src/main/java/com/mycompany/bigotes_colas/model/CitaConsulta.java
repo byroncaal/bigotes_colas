@@ -17,9 +17,10 @@ public class CitaConsulta {
     private LocalDate fecha;
     private LocalTime hora;
     private String motivo;
-    private String diagnostico;   // null = todavia es solo una cita agendada
-    private int idMascota;        // FK -> mascota.id
-    private int idVeterinario;    // FK -> usuario.id (rol = Veterinario)
+    private String diagnostico;       // null = todavia es solo una cita agendada
+    private String tratamientoVacuna; // se llena al registrar la consulta
+    private int idMascota;            // FK -> mascota.id
+    private int idVeterinario;        // FK -> usuario.id (rol = Veterinario)
 
     public CitaConsulta() {
     }
@@ -35,6 +36,13 @@ public class CitaConsulta {
         this.idVeterinario = idVeterinario;
     }
 
+    /** Constructor completo, incluyendo tratamiento/vacuna. */
+    public CitaConsulta(int idCitaConsulta, LocalDate fecha, LocalTime hora, String motivo,
+                         String diagnostico, String tratamientoVacuna, int idMascota, int idVeterinario) {
+        this(idCitaConsulta, fecha, hora, motivo, diagnostico, idMascota, idVeterinario);
+        this.tratamientoVacuna = tratamientoVacuna;
+    }
+
     /** Constructor para agendar una cita nueva (sin diagnostico todavia). */
     public CitaConsulta(LocalDate fecha, LocalTime hora, String motivo, int idMascota, int idVeterinario) {
         this.fecha = fecha;
@@ -43,6 +51,7 @@ public class CitaConsulta {
         this.idMascota = idMascota;
         this.idVeterinario = idVeterinario;
         this.diagnostico = null;
+        this.tratamientoVacuna = null;
     }
 
     public int getIdCitaConsulta() {
@@ -83,6 +92,14 @@ public class CitaConsulta {
 
     public void setDiagnostico(String diagnostico) {
         this.diagnostico = diagnostico;
+    }
+
+    public String getTratamientoVacuna() {
+        return tratamientoVacuna;
+    }
+
+    public void setTratamientoVacuna(String tratamientoVacuna) {
+        this.tratamientoVacuna = tratamientoVacuna;
     }
 
     public int getIdMascota() {

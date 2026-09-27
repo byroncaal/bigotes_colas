@@ -15,6 +15,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
+import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -24,8 +25,10 @@ import java.util.List;
  *
  * @author gbcya
  */
-
 public class CitaConsultaDAOImpl implements CitaConsultaDAO {
+
+    /** Separador que usaba la versión anterior para pegar el tratamiento al motivo. */
+    private static final String SEPARADOR_ANTIGUO = " | ";
 
     @Override
     public List<CitaConsulta> listarPendientes() throws SQLException {
@@ -44,7 +47,8 @@ public class CitaConsultaDAOImpl implements CitaConsultaDAO {
     @Override
     public List<CitaConsulta> listarHistorialPorMascota(int idMascota) throws SQLException {
         List<CitaConsulta> lista = new ArrayList<>();
-        String sql = "SELECT * FROM cita_consulta WHERE mascota_id = ? AND diagnostico IS NOT NULL ORDER BY fecha DESC";
+        String sql = "SELECT * FROM cita_consulta WHERE mascota_id = ? AND diagnostico IS NOT NULL "
+                + "ORDER BY fecha DESC, hora DESC";
         try (Connection con = ConexionBD.obtenerConexion();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, idMascota);
@@ -74,8 +78,8 @@ public class CitaConsultaDAOImpl implements CitaConsultaDAO {
 
     @Override
     public void agendarCita(CitaConsulta c) throws SQLException {
-        String sql = "INSERT INTO cita_consulta (fecha, hora, motivo, diagnostico, mascota_id, vet_id) "
-                + "VALUES (?, ?, ?, NULL, ?, ?)";
+        String sql = "INSERT INTO cita_consulta (fecha, hora, motivo, diagnostico, tratamiento_vacuna, mascota_id, vet_id) "
+                + "VALUES (?, ?, ?, NULL, NULL, ?, ?)";
         try (Connection con = ConexionBD.obtenerConexion();
              PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setDate(1, Date.valueOf(c.getFecha()));
@@ -94,13 +98,21 @@ public class CitaConsultaDAOImpl implements CitaConsultaDAO {
 
     @Override
     public void registrarConsulta(int idCitaConsulta, String diagnostico, String tratamientoVacuna) throws SQLException {
-        String sql = "UPDATE cita_consulta SET diagnostico = ?, motivo = CONCAT(motivo, ' | ', ?) WHERE id = ?";
+        // Antes: motivo = CONCAT(motivo, ' | ', ?) -> mezclaba datos y borraba el motivo si el tratamiento era NULL
+        String sql = "UPDATE cita_consulta SET diagnostico = ?, tratamiento_vacuna = ? WHERE id = ?";
         try (Connection con = ConexionBD.obtenerConexion();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, diagnostico);
-            ps.setString(2, tratamientoVacuna);
+            if (tratamientoVacuna == null || tratamientoVacuna.isBlank()) {
+                ps.setNull(2, Types.VARCHAR);
+            } else {
+                ps.setString(2, tratamientoVacuna.trim());
+            }
             ps.setInt(3, idCitaConsulta);
-            ps.executeUpdate();
+            int filas = ps.executeUpdate();
+            if (filas == 0) {
+                throw new SQLException("No se encontró la cita con id " + idCitaConsulta + ".");
+            }
         }
     }
 
@@ -115,13 +127,28 @@ public class CitaConsultaDAOImpl implements CitaConsultaDAO {
     }
 
     private CitaConsulta mapear(ResultSet rs) throws SQLException {
+        Date fecha = rs.getDate("fecha");
         Time hora = rs.getTime("hora");
+        String motivo = rs.getString("motivo");
+        String diagnostico = rs.getString("diagnostico");
+        String tratamiento = rs.getString("tratamiento_vacuna");
+
+        // Registros viejos: el tratamiento venía pegado al motivo ("motivo | tratamiento")
+        if (tratamiento == null && diagnostico != null && motivo != null) {
+            int pos = motivo.lastIndexOf(SEPARADOR_ANTIGUO);
+            if (pos >= 0) {
+                tratamiento = motivo.substring(pos + SEPARADOR_ANTIGUO.length()).trim();
+                motivo = motivo.substring(0, pos).trim();
+            }
+        }
+
         return new CitaConsulta(
                 rs.getInt("id"),
-                rs.getDate("fecha").toLocalDate(),
+                fecha != null ? fecha.toLocalDate() : null,
                 hora != null ? hora.toLocalTime() : null,
-                rs.getString("motivo"),
-                rs.getString("diagnostico"),
+                motivo,
+                diagnostico,
+                tratamiento,
                 rs.getInt("mascota_id"),
                 rs.getInt("vet_id")
         );

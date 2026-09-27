@@ -14,6 +14,9 @@ public interface UsuarioDAO {
 
     Usuario validarLogin(String usuario, String claveHash) throws SQLException;
 
+    /** Busca por nombre de usuario (activo o suspendido); null si no existe. */
+    Usuario buscarPorUsuario(String usuario) throws SQLException;
+
     List<Usuario> listarTodos() throws SQLException;
 
     List<Usuario> listarPorRol(String rol) throws SQLException;
@@ -23,6 +26,9 @@ public interface UsuarioDAO {
     void actualizar(Usuario usuario) throws SQLException;
 
     void actualizarClave(int idUsuario, String nuevaClaveHash) throws SQLException;
+
+    /** Activa (true) o suspende (false) un usuario. */
+    void cambiarEstado(int idUsuario, boolean activo) throws SQLException;
 
     void eliminar(int idUsuario) throws SQLException;
 }

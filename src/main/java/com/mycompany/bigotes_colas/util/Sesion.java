@@ -3,6 +3,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package com.mycompany.bigotes_colas.util;
+import com.mycompany.bigotes_colas.model.Usuario;
 
 /**
  *
@@ -16,23 +17,30 @@ package com.mycompany.bigotes_colas.util;
  * Prototipo NO funcional: no hay autenticacion real, solo se recuerda
  * el rol elegido en el combo de LoginFrame.
  */
+
 public class Sesion {
-
-    private static String rolActivo = "Administrador"; // valor por defecto para pruebas
-
+ 
+    private static Usuario usuarioActual;
+ 
     private Sesion() {
         // Clase de utilidad: no se instancia
     }
-
-    public static String getRolActivo() {
-        return rolActivo;
+ 
+    public static Usuario getUsuarioActual() {
+        return usuarioActual;
     }
-
-    public static void setRolActivo(String rol) {
-        rolActivo = rol;
+ 
+    public static void setUsuarioActual(Usuario usuario) {
+        usuarioActual = usuario;
     }
-
+ 
+    public static boolean haySesionActiva() {
+        return usuarioActual != null;
+    }
+ 
+    /** Atajo comodo: equivale a getUsuarioActual().esAdministrador(), pero seguro si no hay sesion. */
     public static boolean esAdministrador() {
-        return "Administrador".equals(rolActivo);
+        return usuarioActual != null && usuarioActual.esAdministrador();
     }
 }
+ 
